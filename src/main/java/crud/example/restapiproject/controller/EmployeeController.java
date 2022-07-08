@@ -3,7 +3,7 @@ package crud.example.restapiproject.controller;
 import crud.example.restapiproject.entity.Employee;
 import crud.example.restapiproject.exception.EmployeeNotFoundException;
 import crud.example.restapiproject.repo.EmployeeRepository;
-import crud.example.restapiproject.util.EmployeeModelAssembler;
+import crud.example.restapiproject.controller.assembler.EmployeeModelAssembler;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
@@ -26,17 +26,17 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class EmployeeController {
 
     private final EmployeeRepository repository;
-    public final EmployeeModelAssembler modelAssembler;
+    public final EmployeeModelAssembler assembler;
 
-    EmployeeController(EmployeeRepository repository, EmployeeModelAssembler modelAssembler) {
+    EmployeeController(EmployeeRepository repository, EmployeeModelAssembler assembler) {
         this.repository = repository;
-        this.modelAssembler = modelAssembler;
+        this.assembler = assembler;
     }
 
     @GetMapping("/employees")
     public CollectionModel<EntityModel<Employee>> all() {
         List<EntityModel<Employee>> employees = repository.findAll().stream()
-                .map(modelAssembler::toModel)
+                .map(assembler::toModel)
                 .collect(Collectors.toList());
 
         return CollectionModel.of(employees, linkTo(methodOn(EmployeeController.class).all()).withSelfRel());
@@ -44,7 +44,7 @@ public class EmployeeController {
 
     @PostMapping("/employees")
     ResponseEntity<?> newEmployee(@RequestBody Employee newEmployee) {
-        EntityModel<Employee> entityModel = modelAssembler.toModel(repository.save(newEmployee));
+        EntityModel<Employee> entityModel = assembler.toModel(repository.save(newEmployee));
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
@@ -56,7 +56,7 @@ public class EmployeeController {
         Employee employee = repository.findById(id)
                 .orElseThrow(() -> new EmployeeNotFoundException(id));
 
-        return modelAssembler.toModel(employee);
+        return assembler.toModel(employee);
     }
 
     @PutMapping("/employees/{id}")
@@ -72,7 +72,7 @@ public class EmployeeController {
                     return repository.save(newEmployee);
                 });
 
-        EntityModel<Employee> entityModel = modelAssembler.toModel(updatedEmployee);
+        EntityModel<Employee> entityModel = assembler.toModel(updatedEmployee);
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
