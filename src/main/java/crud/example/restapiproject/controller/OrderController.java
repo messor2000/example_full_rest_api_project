@@ -1,10 +1,9 @@
 package crud.example.restapiproject.controller;
 
+import crud.example.restapiproject.controller.assembler.OrderModelAssembler;
 import crud.example.restapiproject.entity.order.Order;
 import crud.example.restapiproject.entity.order.Status;
-import crud.example.restapiproject.exception.OrderNotFoundException;
-import crud.example.restapiproject.repo.OrderRepository;
-import crud.example.restapiproject.controller.assembler.OrderModelAssembler;
+import crud.example.restapiproject.service.order.OrderService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.MediaTypes;
@@ -21,43 +20,37 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 public class OrderController {
-    private final OrderRepository orderRepository;
+    private final OrderService orderService;
     private final OrderModelAssembler assembler;
 
-    OrderController(OrderRepository orderRepository, OrderModelAssembler assembler) {
-
-        this.orderRepository = orderRepository;
+    OrderController(OrderService orderService, OrderModelAssembler assembler) {
+        this.orderService = orderService;
         this.assembler = assembler;
     }
 
     @GetMapping("/orders")
     public CollectionModel<EntityModel<Order>> all() {
-        List<EntityModel<Order>> orders = orderRepository.findAll().stream()
-                .map(assembler::toModel)
-                .collect(Collectors.toList());
+        List<EntityModel<Order>> orders = orderService.findAll();
 
         return CollectionModel.of(orders, linkTo(methodOn(OrderController.class).all()).withSelfRel());
     }
 
     @GetMapping("/orders/{id}")
     public EntityModel<Order> one(@PathVariable Long id) {
-        Order order = orderRepository.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+        Order order = orderService.findById(id);
 
         return assembler.toModel(order);
     }
 
     @PostMapping("/orders")
     public ResponseEntity<EntityModel<Order>> newOrder(@RequestBody Order order) {
-
-        order.setStatus(Status.IN_PROGRESS);
-        Order newOrder = orderRepository.save(order);
+        Order newOrder = orderService.save(order);
 
         return ResponseEntity
                 .created(linkTo(methodOn(OrderController.class).one(newOrder.getId())).toUri()) //
@@ -66,11 +59,11 @@ public class OrderController {
 
     @DeleteMapping("/orders/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id) {
-        Order order = orderRepository.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+        Order order = orderService.findById(id);
 
         if (order.getStatus() == Status.IN_PROGRESS) {
             order.setStatus(Status.CANCELLED);
-            return ResponseEntity.ok(assembler.toModel(orderRepository.save(order)));
+            return ResponseEntity.ok(assembler.toModel(orderService.save(order)));
         }
 
         return ResponseEntity
@@ -84,11 +77,11 @@ public class OrderController {
     @PutMapping("/orders/{id}/complete")
     public ResponseEntity<?> complete(@PathVariable Long id) {
 
-        Order order = orderRepository.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+        Order order = orderService.findById(id);
 
         if (order.getStatus() == Status.IN_PROGRESS) {
             order.setStatus(Status.COMPLETED);
-            return ResponseEntity.ok(assembler.toModel(orderRepository.save(order)));
+            return ResponseEntity.ok(assembler.toModel(orderService.save(order)));
         }
 
         return ResponseEntity
