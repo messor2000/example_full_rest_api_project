@@ -1,5 +1,6 @@
 package crud.example.restapiproject.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -18,8 +19,7 @@ import javax.persistence.Id;
 @NoArgsConstructor
 @EqualsAndHashCode
 @ToString
-public
-class Employee {
+public class Employee {
     @Id
     @GeneratedValue
     private Long id;
